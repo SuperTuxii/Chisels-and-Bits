@@ -46,30 +46,30 @@ public class GreedyMeshBuilder {
         }
         final MaterialProcessor materialProcessor = new MaterialProcessor();
         
-        final boolean RENDERTYPE_SOLID = chiselRenderType.layer.equals(RenderType.solid());
-        final int BITS_PER_BLOCK_SIDE = StateEntrySize.current().getBitsPerBlockSide();
-        final int BITS_PER_BLOCK_SIDE_P = BITS_PER_BLOCK_SIDE + 2;
-        final int BITS_PER_BLOCK_SIDE_P2 = BITS_PER_BLOCK_SIDE_P * BITS_PER_BLOCK_SIDE_P;
+        final boolean renderTypeSolid = chiselRenderType.layer.equals(RenderType.solid());
+        final int bitsPerBlockSide = StateEntrySize.current().getBitsPerBlockSide();
+        final int bitsPerBlockSideP = bitsPerBlockSide + 2;
+        final int bitsPerBlockSideP2 = bitsPerBlockSideP * bitsPerBlockSideP;
 
         final ArrayList<int[]> materialMaskCols = new ArrayList<>();
-        materialMaskCols.add(0, new int[3 * BITS_PER_BLOCK_SIDE_P2]);
+        materialMaskCols.add(0, new int[3 * bitsPerBlockSideP2]);
 
-        for (int x = 0; x < BITS_PER_BLOCK_SIDE_P; x++) {
-            for (int y = 0; y < BITS_PER_BLOCK_SIDE_P; y++) {
-                for (int z = 0; z < BITS_PER_BLOCK_SIDE_P; z++) {
+        for (int x = 0; x < bitsPerBlockSideP; x++) {
+            for (int y = 0; y < bitsPerBlockSideP; y++) {
+                for (int z = 0; z < bitsPerBlockSideP; z++) {
                     if (!materialData.getMaterial(x - 1, y - 1, z - 1).isSeeThrough()) {
-                        materialMaskCols.get(0)[x + (z * BITS_PER_BLOCK_SIDE_P)] |= (1 << y);
-                        materialMaskCols.get(0)[x + (y * BITS_PER_BLOCK_SIDE_P) + BITS_PER_BLOCK_SIDE_P2] |= (1 << z);
-                        materialMaskCols.get(0)[y + (z * BITS_PER_BLOCK_SIDE_P) + (BITS_PER_BLOCK_SIDE_P2 * 2)] |= (1 << x);
+                        materialMaskCols.get(0)[x + (z * bitsPerBlockSideP)] |= (1 << y);
+                        materialMaskCols.get(0)[x + (y * bitsPerBlockSideP) + bitsPerBlockSideP2] |= (1 << z);
+                        materialMaskCols.get(0)[y + (z * bitsPerBlockSideP) + (bitsPerBlockSideP2 * 2)] |= (1 << x);
                     }
-                    if (!RENDERTYPE_SOLID) {
+                    if (!renderTypeSolid) {
                         int materialIndex = materialProcessor.getMaterialIndex(x - 1, y - 1, z - 1);
                         if (materialIndex != 0) {
                             while (materialIndex >= materialMaskCols.size())
-                                materialMaskCols.add(new int[3 * BITS_PER_BLOCK_SIDE_P2]);
-                            materialMaskCols.get(materialIndex)[x + (z * BITS_PER_BLOCK_SIDE_P)] |= (1 << y);
-                            materialMaskCols.get(materialIndex)[x + (y * BITS_PER_BLOCK_SIDE_P) + BITS_PER_BLOCK_SIDE_P2] |= (1 << z);
-                            materialMaskCols.get(materialIndex)[y + (z * BITS_PER_BLOCK_SIDE_P) + (BITS_PER_BLOCK_SIDE_P2 * 2)] |= (1 << x);
+                                materialMaskCols.add(new int[3 * bitsPerBlockSideP2]);
+                            materialMaskCols.get(materialIndex)[x + (z * bitsPerBlockSideP)] |= (1 << y);
+                            materialMaskCols.get(materialIndex)[x + (y * bitsPerBlockSideP) + bitsPerBlockSideP2] |= (1 << z);
+                            materialMaskCols.get(materialIndex)[y + (z * bitsPerBlockSideP) + (bitsPerBlockSideP2 * 2)] |= (1 << x);
                         }
                     }
                 }
@@ -78,25 +78,25 @@ public class GreedyMeshBuilder {
 
         List<HashMap<Integer, HashMap<Integer, int[]>>> faceData = new ArrayList<>(6);
 
-        if (RENDERTYPE_SOLID) {
-            int[] faceMaskCols = new int[6 * BITS_PER_BLOCK_SIDE_P2];
+        if (renderTypeSolid) {
+            int[] faceMaskCols = new int[6 * bitsPerBlockSideP2];
 
             for (int axis = 0; axis < 3; axis++) {
-                for (int i = 0; i < BITS_PER_BLOCK_SIDE_P2; i++) {
-                    int col = materialMaskCols.get(0)[i + (BITS_PER_BLOCK_SIDE_P2 * axis)];
-                    faceMaskCols[i + (BITS_PER_BLOCK_SIDE_P2 * axis * 2)] = col & ~(col << 1);
-                    faceMaskCols[i + (BITS_PER_BLOCK_SIDE_P2 * ((axis * 2) + 1))] = col & ~(col >> 1);
+                for (int i = 0; i < bitsPerBlockSideP2; i++) {
+                    int col = materialMaskCols.get(0)[i + (bitsPerBlockSideP2 * axis)];
+                    faceMaskCols[i + (bitsPerBlockSideP2 * axis * 2)] = col & ~(col << 1);
+                    faceMaskCols[i + (bitsPerBlockSideP2 * ((axis * 2) + 1))] = col & ~(col >> 1);
                 }
             }
 
             for (int axis = 0; axis < 6; axis++) {
                 faceData.add(new HashMap<>());
-                for (int x = 0; x < BITS_PER_BLOCK_SIDE; x++) {
-                    for (int z = 0; z < BITS_PER_BLOCK_SIDE; z++) {
-                        int colIndex = 1 + x + ((z + 1) * BITS_PER_BLOCK_SIDE_P) + BITS_PER_BLOCK_SIDE_P2 * axis;
+                for (int x = 0; x < bitsPerBlockSide; x++) {
+                    for (int z = 0; z < bitsPerBlockSide; z++) {
+                        int colIndex = 1 + x + ((z + 1) * bitsPerBlockSideP) + bitsPerBlockSideP2 * axis;
 
                         int col = faceMaskCols[colIndex] >> 1;
-                        col &= ~(1 << BITS_PER_BLOCK_SIDE);
+                        col &= ~(1 << bitsPerBlockSide);
 
                         while (col != 0) {
                             int y = Integer.numberOfTrailingZeros(col);
@@ -110,34 +110,34 @@ public class GreedyMeshBuilder {
 
                             faceData.get(axis)
                                     .computeIfAbsent(bitMaterial, k -> new HashMap<>())
-                                    .computeIfAbsent(y, k -> new int[BITS_PER_BLOCK_SIDE])[x] |= 1 << z;
+                                    .computeIfAbsent(y, k -> new int[bitsPerBlockSide])[x] |= 1 << z;
                         }
                     }
                 }
             }
         }else {
             final ArrayList<int[]> faceColMasks = new ArrayList<>();
-            materialMaskCols.forEach((material) -> faceColMasks.add(new int[6 * BITS_PER_BLOCK_SIDE_P2]));
+            materialMaskCols.forEach((material) -> faceColMasks.add(new int[6 * bitsPerBlockSideP2]));
 
             for (int axis = 0; axis < 3; axis++) {
-                for (int i = 0; i < BITS_PER_BLOCK_SIDE_P2; i++) {
-                    int col = materialMaskCols.get(0)[i + (BITS_PER_BLOCK_SIDE_P2 * axis)];
+                for (int i = 0; i < bitsPerBlockSideP2; i++) {
+                    int col = materialMaskCols.get(0)[i + (bitsPerBlockSideP2 * axis)];
                     for (int material = 1; material < faceColMasks.size(); material++) {
-                        int materialCol = materialMaskCols.get(material)[i + (BITS_PER_BLOCK_SIDE_P2 * axis)];
-                        faceColMasks.get(material)[i + (BITS_PER_BLOCK_SIDE_P2 * axis * 2)] = materialCol & ~((materialCol | col) << 1);
-                        faceColMasks.get(material)[i + (BITS_PER_BLOCK_SIDE_P2 * ((axis * 2) + 1))] = materialCol & ~((materialCol | col) >> 1);
+                        int materialCol = materialMaskCols.get(material)[i + (bitsPerBlockSideP2 * axis)];
+                        faceColMasks.get(material)[i + (bitsPerBlockSideP2 * axis * 2)] = materialCol & ~((materialCol | col) << 1);
+                        faceColMasks.get(material)[i + (bitsPerBlockSideP2 * ((axis * 2) + 1))] = materialCol & ~((materialCol | col) >> 1);
                     }
                 }
             }
 
             for (int axis = 0; axis < 6; axis++) {
                 faceData.add(new HashMap<>());
-                for (int x = 0; x < BITS_PER_BLOCK_SIDE; x++) {
-                    for (int z = 0; z < BITS_PER_BLOCK_SIDE; z++) {
-                        int colIndex = 1 + x + ((z + 1) * BITS_PER_BLOCK_SIDE_P) + BITS_PER_BLOCK_SIDE_P2 * axis;
+                for (int x = 0; x < bitsPerBlockSide; x++) {
+                    for (int z = 0; z < bitsPerBlockSide; z++) {
+                        int colIndex = 1 + x + ((z + 1) * bitsPerBlockSideP) + bitsPerBlockSideP2 * axis;
                         for (int material = 1; material < faceColMasks.size(); material++) {
                             int col = faceColMasks.get(material)[colIndex] >> 1;
-                            col &= ~(1 << BITS_PER_BLOCK_SIDE);
+                            col &= ~(1 << bitsPerBlockSide);
 
                             while (col != 0) {
                                 int y = Integer.numberOfTrailingZeros(col);
@@ -145,7 +145,7 @@ public class GreedyMeshBuilder {
 
                                 faceData.get(axis)
                                         .computeIfAbsent(material, k -> new HashMap<>())
-                                        .computeIfAbsent(y, k -> new int[BITS_PER_BLOCK_SIDE])[x] |= 1 << z;
+                                        .computeIfAbsent(y, k -> new int[bitsPerBlockSide])[x] |= 1 << z;
                             }
                         }
                     }
@@ -156,7 +156,7 @@ public class GreedyMeshBuilder {
         for (int axis = 0; axis < faceData.size(); axis++) {
             Direction faceDirection = Direction.values()[axis];
             faceData.get(axis).forEach((material, axisFaces) -> axisFaces.forEach(
-                    (axisPos, plane) -> faces.addAll(greedyMeshBinaryPlane(plane, materials.get(material - 1), faceDirection, axisPos, BITS_PER_BLOCK_SIDE))
+                    (axisPos, plane) -> faces.addAll(greedyMeshBinaryPlane(plane, materials.get(material - 1), faceDirection, axisPos, bitsPerBlockSide))
             ));
         }
         return faces.toArray(new GreedyMeshFace[0]);
